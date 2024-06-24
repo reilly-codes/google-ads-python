@@ -39,9 +39,6 @@ from google.ads.googleads.errors import GoogleAdsException
 # These temporary IDs are fixed because they are used in multiple places.
 _TEMPORARY_ID_LISTING_GROUP_ROOT = -1
 
-# Sets the page size for paged search queries.
-_PAGE_SIZE = 10000
-
 
 class AssetGroupListingGroupFilterRemoveOperationFactory:
     def __init__(self, client, listing_group_filters):
@@ -189,11 +186,15 @@ class AssetGroupListingGroupFilterCreateOperationFactory:
             mutate_operation.asset_group_listing_group_filter_operation.create
         )
 
-        asset_group_listing_group_filter.resource_name = googleads_service.asset_group_listing_group_filter_path(
-            self.customer_id, self.asset_group_id, self.root_listing_id
+        asset_group_listing_group_filter.resource_name = (
+            googleads_service.asset_group_listing_group_filter_path(
+                self.customer_id, self.asset_group_id, self.root_listing_id
+            )
         )
-        asset_group_listing_group_filter.asset_group = googleads_service.asset_group_path(
-            self.customer_id, self.asset_group_id
+        asset_group_listing_group_filter.asset_group = (
+            googleads_service.asset_group_path(
+                self.customer_id, self.asset_group_id
+            )
         )
         # Since this is the root node, do not set the
         # parent_listing_group_filter field. For all other nodes, this would
@@ -208,9 +209,9 @@ class AssetGroupListingGroupFilterCreateOperationFactory:
         )
 
         # Because this is a Performance Max campaign for retail, we need to
-        # specify that this is a shopping vertical.
-        asset_group_listing_group_filter.vertical = (
-            self.client.enums.ListingGroupFilterVerticalEnum.SHOPPING
+        # specify that this is a shopping listing source.
+        asset_group_listing_group_filter.listing_source = (
+            self.client.enums.ListingGroupFilterListingSourceEnum.SHOPPING
         )
 
         return mutate_operation
@@ -239,20 +240,30 @@ class AssetGroupListingGroupFilterCreateOperationFactory:
             mutate_operation.asset_group_listing_group_filter_operation.create
         )
 
-        asset_group_listing_group_filter.resource_name = googleads_service.asset_group_listing_group_filter_path(
-            self.customer_id, self.asset_group_id, temporary_id
+        asset_group_listing_group_filter.resource_name = (
+            googleads_service.asset_group_listing_group_filter_path(
+                self.customer_id, self.asset_group_id, temporary_id
+            )
         )
-        asset_group_listing_group_filter.asset_group = googleads_service.asset_group_path(
-            self.customer_id, self.asset_group_id
+        asset_group_listing_group_filter.asset_group = (
+            googleads_service.asset_group_path(
+                self.customer_id, self.asset_group_id
+            )
         )
-        asset_group_listing_group_filter.parent_listing_group_filter = googleads_service.asset_group_listing_group_filter_path(
-            self.customer_id, self.asset_group_id, parent_id
+        asset_group_listing_group_filter.parent_listing_group_filter = (
+            googleads_service.asset_group_listing_group_filter_path(
+                self.customer_id, self.asset_group_id, parent_id
+            )
         )
+        # We must use the Subdivision type to indicate that the
+        # AssetGroupListingGroupFilter will have children.
         asset_group_listing_group_filter.type_ = (
             self.client.enums.ListingGroupFilterTypeEnum.SUBDIVISION
         )
-        asset_group_listing_group_filter.vertical = (
-            self.client.enums.ListingGroupFilterVerticalEnum.SHOPPING
+        # Because this is a Performance Max campaign for retail, we need to
+        # specify that this is in the shopping listing source.
+        asset_group_listing_group_filter.listing_source = (
+            self.client.enums.ListingGroupFilterListingSourceEnum.SHOPPING
         )
         asset_group_listing_group_filter.case_value = dimension
 
@@ -281,14 +292,20 @@ class AssetGroupListingGroupFilterCreateOperationFactory:
             mutate_operation.asset_group_listing_group_filter_operation.create
         )
 
-        asset_group_listing_group_filter.resource_name = googleads_service.asset_group_listing_group_filter_path(
-            self.customer_id, self.asset_group_id, temporary_id
+        asset_group_listing_group_filter.resource_name = (
+            googleads_service.asset_group_listing_group_filter_path(
+                self.customer_id, self.asset_group_id, temporary_id
+            )
         )
-        asset_group_listing_group_filter.asset_group = googleads_service.asset_group_path(
-            self.customer_id, self.asset_group_id
+        asset_group_listing_group_filter.asset_group = (
+            googleads_service.asset_group_path(
+                self.customer_id, self.asset_group_id
+            )
         )
-        asset_group_listing_group_filter.parent_listing_group_filter = googleads_service.asset_group_listing_group_filter_path(
-            self.customer_id, self.asset_group_id, parent_id
+        asset_group_listing_group_filter.parent_listing_group_filter = (
+            googleads_service.asset_group_listing_group_filter_path(
+                self.customer_id, self.asset_group_id, parent_id
+            )
         )
         # We must use the UnitIncluded type to indicate that the
         # AssetGroupListingGroupFilter won't have children.
@@ -296,9 +313,9 @@ class AssetGroupListingGroupFilterCreateOperationFactory:
             self.client.enums.ListingGroupFilterTypeEnum.UNIT_INCLUDED
         )
         # Because this is a Performance Max campaign for retail, we need to
-        # specify that this is in the shopping vertical.
-        asset_group_listing_group_filter.vertical = (
-            self.client.enums.ListingGroupFilterVerticalEnum.SHOPPING
+        # specify that this is in the shopping listing source.
+        asset_group_listing_group_filter.listing_source = (
+            self.client.enums.ListingGroupFilterListingSourceEnum.SHOPPING
         )
         asset_group_listing_group_filter.case_value = dimension
 
@@ -325,20 +342,29 @@ def main(client, customer_id, asset_group_id, replace_existing_tree):
 
     if replace_existing_tree:
         # Retrieve a list of existing AssetGroupListingGroupFilters
-        existing_listing_group_filters = get_all_existing_listing_group_filter_assets_in_asset_group(
-            client, customer_id, asset_group_resource_name
+        existing_listing_group_filters = (
+            get_all_existing_listing_group_filter_assets_in_asset_group(
+                client, customer_id, asset_group_resource_name
+            )
         )
 
         # If present, create MutateOperations to remove each
         # AssetGroupListingGroupFilter and add them to the list of operations.
         if existing_listing_group_filters:
-            remove_operation_factory = AssetGroupListingGroupFilterRemoveOperationFactory(
-                client, existing_listing_group_filters
+            remove_operation_factory = (
+                AssetGroupListingGroupFilterRemoveOperationFactory(
+                    client, existing_listing_group_filters
+                )
             )
             operations.extend(remove_operation_factory.remove_all())
 
-    create_operation_factory = AssetGroupListingGroupFilterCreateOperationFactory(
-        client, customer_id, asset_group_id, _TEMPORARY_ID_LISTING_GROUP_ROOT,
+    create_operation_factory = (
+        AssetGroupListingGroupFilterCreateOperationFactory(
+            client,
+            customer_id,
+            asset_group_id,
+            _TEMPORARY_ID_LISTING_GROUP_ROOT,
+        )
     )
 
     operations.append(create_operation_factory.create_root())
@@ -453,7 +479,6 @@ def get_all_existing_listing_group_filter_assets_in_asset_group(
     request = client.get_type("SearchGoogleAdsRequest")
     request.customer_id = customer_id
     request.query = query
-    request.page_size = _PAGE_SIZE
 
     googleads_service = client.get_service("GoogleAdsService")
     response = googleads_service.search(request=request)
@@ -498,10 +523,6 @@ def print_response_details(mutate_operations, response):
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description=(
             "Adds product partitions to a Performance Max retail campaign."
@@ -538,6 +559,10 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v17")
 
     try:
         main(

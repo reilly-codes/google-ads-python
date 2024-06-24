@@ -64,8 +64,11 @@ def main(client, customer_id, billing_setup_id):
     # proposal.proposed_notes = 'Received prepayment of $0.01'
     proposal.proposed_spending_limit_micros = 10000
 
-    account_budget_proposal_response = account_budget_proposal_service.mutate_account_budget_proposal(
-        customer_id=customer_id, operation=account_budget_proposal_operation,
+    account_budget_proposal_response = (
+        account_budget_proposal_service.mutate_account_budget_proposal(
+            customer_id=customer_id,
+            operation=account_budget_proposal_operation,
+        )
     )
     print(
         "Created account budget proposal "
@@ -75,10 +78,6 @@ def main(client, customer_id, billing_setup_id):
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description="Creates an account budget proposal."
     )
@@ -98,6 +97,10 @@ if __name__ == "__main__":
         help="The billing setup ID.",
     )
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v17")
 
     try:
         main(googleads_client, args.customer_id, args.billing_setup_id)

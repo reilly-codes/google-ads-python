@@ -104,7 +104,6 @@ def main(client, customer_id):
         "http://example.com/example3"
     )
     user_list.membership_status = client.enums.UserListMembershipStatusEnum.OPEN
-    user_list.membership_life_span = 365
     user_list.rule_based_user_list = rule_based_user_list_info
 
     # Issue a mutate request to add the user list, then print the results.
@@ -150,10 +149,6 @@ def create_user_list_rule_info_from_url(client, url):
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description="Creates a combination user list containing users that are "
         "present on any one of the provided user lists."
@@ -167,6 +162,10 @@ if __name__ == "__main__":
         help="The Google Ads customer ID.",
     )
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v17")
 
     try:
         main(googleads_client, args.customer_id)

@@ -113,8 +113,10 @@ def modify_user_access(client, customer_id, user_id, access_role):
     customer_user_access_op = client.get_type("CustomerUserAccessOperation")
     access_role_enum = client.enums.AccessRoleEnum
     customer_user_access = customer_user_access_op.update
-    customer_user_access.resource_name = customer_user_access_service.customer_user_access_path(
-        customer_id, user_id
+    customer_user_access.resource_name = (
+        customer_user_access_service.customer_user_access_path(
+            customer_id, user_id
+        )
     )
     customer_user_access.access_role = getattr(access_role_enum, access_role)
     client.copy_from(
@@ -133,10 +135,6 @@ def modify_user_access(client, customer_id, user_id, access_role):
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description="This code example updates the access role of a user, "
         "given the email address."
@@ -166,6 +164,10 @@ if __name__ == "__main__":
         choices=_ACCESS_ROLES,
     )
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v17")
     try:
         main(
             googleads_client,

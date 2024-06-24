@@ -13,10 +13,9 @@
 # limitations under the License.
 """Tests for the Metadata gRPC Interceptor."""
 
+from unittest import mock
 from unittest import TestCase
 import sys
-
-import mock
 
 from google.ads.googleads.interceptors import MetadataInterceptor
 
@@ -31,6 +30,7 @@ class MetadataInterceptorTest(TestCase):
         self.mock_developer_token = "1234567890"
         self.mock_login_customer_id = "0987654321"
         self.mock_linked_customer_id = "5555555555"
+        self.use_cloud_org_for_api_access = True
         self.python_version = python_version
         super(MetadataInterceptorTest, self).setUp()
 
@@ -171,13 +171,10 @@ class MetadataInterceptorTest(TestCase):
         mock_client_call_details.method = "test/method"
         mock_client_call_details.timeout = 5
         mock_client_call_details.metadata = [
-            (
-                "apples",
-                "oranges"
-            ),
+            ("apples", "oranges"),
             (
                 "x-goog-api-client",
-                f"gl-python/{self.python_version} grpc/1.45.0 gax/2.2.2"
+                f"gl-python/{self.python_version} grpc/1.45.0 gax/2.2.2",
             ),
         ]
         # Create a simple function that just returns the client_call_details
@@ -241,3 +238,85 @@ class MetadataInterceptorTest(TestCase):
             # We assert that the _intercept method did not add the "pb" key
             # value pair because it was already present when passed in.
             self.assertEqual(user_agent.count("pb"), 1)
+
+    @mock.patch(
+        "google.ads.googleads.interceptors.metadata_interceptor._PROTOBUF_VERSION",
+        None,
+    )
+    def test_absent_pb_version(self):
+        """Asserts that the protobuf package version is left out if not present.
+
+        In a situation where the `metadata` package cannot find a version for
+        the `protobuf` package, we assert that the "pb/x.y.x" substring is left
+        out of the user agent of the request.
+        """
+        interceptor = MetadataInterceptor(
+            self.mock_developer_token,
+            self.mock_login_customer_id,
+            self.mock_linked_customer_id,
+        )
+
+        mock_request = mock.Mock()
+        mock_client_call_details = mock.Mock()
+        mock_client_call_details.method = "test/method"
+        mock_client_call_details.timeout = 5
+        mock_client_call_details.metadata = [
+            ("apples", "oranges"),
+            (
+                "x-goog-api-client",
+                f"gl-python/{self.python_version} grpc/1.45.0",
+            ),
+        ]
+
+        def mock_continuation(client_call_details, _):
+            return client_call_details
+
+        with mock.patch.object(
+            interceptor,
+            "_update_client_call_details_metadata",
+            wraps=interceptor._update_client_call_details_metadata,
+        ):
+            modified_client_call_details = interceptor._intercept(
+                mock_continuation, mock_client_call_details, mock_request
+            )
+
+            user_agent = modified_client_call_details.metadata[1][1]
+            # We assert that the _intercept method did not add the "pb" key
+            # value pair because it was already present when passed in.
+            self.assertEqual(user_agent.count("pb"), 0)
+
+    def test_intercept_unary_stream_use_cloud_org_for_api_access(self):
+        interceptor = MetadataInterceptor(
+            self.mock_developer_token,
+            self.mock_login_customer_id,
+            self.mock_linked_customer_id,
+            self.use_cloud_org_for_api_access,
+        )
+
+        mock_continuation = mock.Mock(return_value=None)
+        mock_client_call_details = mock.Mock()
+        mock_client_call_details.method = "test/method"
+        mock_client_call_details.timeout = 5
+        mock_client_call_details.metadata = [("apples", "oranges")]
+        mock_request = mock.Mock()
+
+        with mock.patch.object(
+            interceptor,
+            "_update_client_call_details_metadata",
+            wraps=interceptor._update_client_call_details_metadata,
+        ) as mock_updater:
+            interceptor.intercept_unary_stream(
+                mock_continuation, mock_client_call_details, mock_request
+            )
+            # Assets that if "use_cloud_org_for_api_access" is passed into
+            # MetadataInterceptor as True, then
+            mock_updater.assert_called_once_with(
+                mock_client_call_details,
+                [
+                    mock_client_call_details.metadata[0],
+                    interceptor.login_customer_id_meta,
+                    interceptor.linked_customer_id_meta,
+                ],
+            )
+
+            mock_continuation.assert_called_once()

@@ -47,8 +47,10 @@ def main(client, customer_id, conversion_action_ids):
     user_list_action_info_list = []
     for conversion_action_id in conversion_action_ids:
         user_list_action_info = client.get_type("UserListActionInfo")
-        user_list_action_info.conversion_action = conversion_action_service.conversion_action_path(
-            customer_id, conversion_action_id
+        user_list_action_info.conversion_action = (
+            conversion_action_service.conversion_action_path(
+                customer_id, conversion_action_id
+            )
         )
         user_list_action_info_list.append(user_list_action_info)
 
@@ -76,10 +78,6 @@ def main(client, customer_id, conversion_action_ids):
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description="Creates a basic user list based on conversion actions."
     )
@@ -100,6 +98,10 @@ if __name__ == "__main__":
         help="The IDs of the conversion actions for the basic user list.",
     )
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v17")
 
     try:
         main(googleads_client, args.customer_id, args.conversion_action_ids)

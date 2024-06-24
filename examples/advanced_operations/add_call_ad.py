@@ -99,10 +99,6 @@ def main(
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description=("Adds a call extension to a specific account.")
     )
@@ -115,7 +111,11 @@ if __name__ == "__main__":
         help="The Google Ads customer ID.",
     )
     parser.add_argument(
-        "-a", "--ad_group_id", type=str, required=True, help="An ad group ID.",
+        "-a",
+        "--ad_group_id",
+        type=str,
+        required=True,
+        help="An ad group ID.",
     )
     parser.add_argument(
         "-n",
@@ -143,6 +143,10 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v17")
 
     try:
         main(

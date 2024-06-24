@@ -33,8 +33,10 @@ def main(client, customer_id, campaign_id, keyword_text, location_id):
         create_proximity_op(client, customer_id, campaign_id),
     ]
 
-    campaign_criterion_response = campaign_criterion_service.mutate_campaign_criteria(
-        customer_id=customer_id, operations=operations
+    campaign_criterion_response = (
+        campaign_criterion_service.mutate_campaign_criteria(
+            customer_id=customer_id, operations=operations
+        )
     )
 
     for result in campaign_criterion_response.results:
@@ -57,8 +59,8 @@ def create_location_op(client, customer_id, campaign_id, location_id):
     # GeoTargetConstantService.suggest_geo_target_constants() and directly
     # apply GeoTargetConstant.resource_name here. An example can be found
     # in get_geo_target_constant_by_names.py.
-    campaign_criterion.location.geo_target_constant = geo_target_constant_service.geo_target_constant_path(
-        location_id
+    campaign_criterion.location.geo_target_constant = (
+        geo_target_constant_service.geo_target_constant_path(location_id)
     )
 
     return campaign_criterion_operation
@@ -107,10 +109,6 @@ def create_proximity_op(client, customer_id, campaign_id):
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description=(
             "Adds campaign targeting criteria for the specified "
@@ -149,6 +147,10 @@ if __name__ == "__main__":
         ),
     )
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v17")
 
     try:
         main(

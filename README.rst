@@ -9,7 +9,7 @@ Build Status
 
 Requirements
 ------------
-* Python 3.7+
+* Python 3.8+
 
 Installation
 ------------
@@ -73,7 +73,7 @@ Authors
 .. _Andrew Burke: https://github.com/AndrewMBurke
 .. _Laura Chevalier: https://github.com/laurachevalier4
 .. _Bob Hancock: https://github.com/bobhancock
-.. _14.0.0: https://pypi.org/project/google-ads/14.0.0/.. _15.0.0: https://pypi.org/project/google-ads/15.0.0/
+.. _14.0.0: https://pypi.org/project/google-ads/14.0.0/
 .. _21.2.0: https://pypi.org/project/google-ads/21.2.0/
 .. _Protobuf Messages: https://developers.google.com/google-ads/api/docs/client-libs/python/protobuf-messages
 .. _protobuf: https://pypi.org/project/protobuf/

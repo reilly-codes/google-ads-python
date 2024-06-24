@@ -85,8 +85,12 @@ def main(client, customer_id, manager_customer_id):
     )
     manager_link_operation = client.get_type("CustomerManagerLinkOperation")
     manager_link = manager_link_operation.update
-    manager_link.resource_name = customer_manager_link_service.customer_manager_link_path(
-        customer_id, manager_customer_id, manager_link_id,
+    manager_link.resource_name = (
+        customer_manager_link_service.customer_manager_link_path(
+            customer_id,
+            manager_customer_id,
+            manager_link_id,
+        )
     )
 
     manager_link.status = client.enums.ManagerLinkStatusEnum.ACTIVE
@@ -106,10 +110,6 @@ def main(client, customer_id, manager_customer_id):
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description=(
             "Links an existing manager customer to an existing"
@@ -128,6 +128,10 @@ if __name__ == "__main__":
         help="The manager customer ID.",
     )
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v17")
     try:
         main(googleads_client, args.customer_id, args.manager_customer_id)
     except GoogleAdsException as ex:

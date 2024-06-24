@@ -129,12 +129,18 @@ def main(client, customer_id):
 
     # [START setup_advanced_remarketing_2]
     checkout_and_cart_size_rule_group.rule_items.extend(
-        [checkout_rule, cart_size_rule,]
+        [
+            checkout_rule,
+            cart_size_rule,
+        ]
     )
     # [END setup_advanced_remarketing_2]
     # [START setup_advanced_remarketing_5]
     checkout_date_rule_group.rule_items.extend(
-        [start_date_rule, end_date_rule,]
+        [
+            start_date_rule,
+            end_date_rule,
+        ]
     )
     # [END setup_advanced_remarketing_5]
 
@@ -156,7 +162,10 @@ def main(client, customer_id):
     # themselves will be ORed together.
     rule_operand = client.get_type("FlexibleRuleOperandInfo")
     rule_operand.rule.rule_item_groups.extend(
-        [checkout_and_cart_size_rule_group, checkout_date_rule_group,]
+        [
+            checkout_and_cart_size_rule_group,
+            checkout_date_rule_group,
+        ]
     )
     rule_operand.lookback_window_days = 7
     flexible_rule_user_list_info.inclusive_operands.append(rule_operand)
@@ -173,10 +182,6 @@ def main(client, customer_id):
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description="Creates a rule-based user list defined by an expression "
         "rule for users who have either checked out in November, "
@@ -192,6 +197,10 @@ if __name__ == "__main__":
         help="The Google Ads customer ID.",
     )
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v17")
 
     try:
         main(googleads_client, args.customer_id)
