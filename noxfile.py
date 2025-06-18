@@ -13,65 +13,79 @@
 # limitations under the License.
 
 import nox
+import os
+import pathlib
 
-PYTHON_VERSIONS = ["3.7"]
+
+PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13"]
+PROTOBUF_IMPLEMENTATIONS = ["python", "upb"]
+
+TEST_COMMAND = [
+    "coverage",
+    "run",
+    "--append",
+    "-m",
+    "unittest",
+    "discover",
+    "--buffer",
+    "-s=tests",
+    "-p",
+    "*_test.py",
+]
+COVERAGE_COMMAND = [
+    "coverage",
+    "report",
+    "-m",
+    "--omit=.nox/*,examples/*,*/__init__.py",
+]
+FREEZE_COMMAND = ["python", "-m", "pip", "freeze"]
+TEST_DEPENDENCIES = [
+    "pyfakefs>=5.0.0,<6.0",
+    "coverage==6.5.0",
+]
+CURRENT_DIR = pathlib.Path(__file__).parent.absolute()
+CONSTRAINTS_DIR = os.path.join(CURRENT_DIR, "tests", "constraints")
 
 
 @nox.session(python=PYTHON_VERSIONS)
-def tests(session):
+@nox.parametrize("protobuf_implementation", PROTOBUF_IMPLEMENTATIONS)
+def tests(session, protobuf_implementation):
     session.install(".")
     # modules for testing
-    session.install(
-        "mock>=4.0.3",
-        "pyfakefs>=3.5,<3.7",
-        "coverage==6.5.0",
-    )
+    session.install(*TEST_DEPENDENCIES)
+    session.run(*FREEZE_COMMAND)
     session.run(
-        "coverage",
-        "run",
-        "--append",
-        "-m",
-        "unittest",
-        "discover",
-        "-s=tests",
-        "-p",
-        "*_test.py",
+        *TEST_COMMAND,
+        env={
+            "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": protobuf_implementation,
+        },
     )
-    session.run(
-        "coverage", "report", "-m", "--omit=.nox/*,examples/*,*/__init__.py"
-    )
+    session.run(*COVERAGE_COMMAND)
+
 
 # This session runs all the unit tests but with the lowest-possible versions
 # of supported dependencies that are published by Google.
 @nox.session(python=PYTHON_VERSIONS)
-def tests_minimum_dependency_versions(session):
+@nox.parametrize("protobuf_implementation", PROTOBUF_IMPLEMENTATIONS)
+def tests_minimum_dependency_versions(session, protobuf_implementation):
+    if session.python == "3.13":
+        # If running Python 3.13 use the constraints file intended for it.
+        filename = "constraints-3.13.txt"
+    else:
+        # If runnning a Python version other than 3.13 then use the constraints
+        # file intended for all versions previous to 3.13.
+        # TODO: Update this when new major versions of Python are adopted.
+        filename = "constraints-less-than-3.13.txt"
+
+    constraints_file = os.path.join(CONSTRAINTS_DIR, "minimums", filename)
+
     session.install(".")
-    # modules for testing
-    session.install(
-        "mock>=4.0.3",
-        "pyfakefs>=3.5,<3.7",
-        "coverage==6.5.0",
-        # Google-published dependencies pinned to the
-        # lowest possible version supported.
-        "google-api-core==2.8.0",
-        "proto-plus==1.19.6",
-        "protobuf==3.12.0",
-        "google-auth-oauthlib==0.3.0",
-        "googleapis-common-protos==1.56.0",
-        "grpcio==1.38.1",
-        "grpcio-status==1.38.1",
-    )
+    session.install(*TEST_DEPENDENCIES, "-c", constraints_file)
+    session.run(*FREEZE_COMMAND)
     session.run(
-        "coverage",
-        "run",
-        "--append",
-        "-m",
-        "unittest",
-        "discover",
-        "-s=tests",
-        "-p",
-        "*_test.py",
+        *TEST_COMMAND,
+        env={
+            "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": protobuf_implementation,
+        },
     )
-    session.run(
-        "coverage", "report", "-m", "--omit=.nox/*,examples/*,*/__init__.py"
-    )
+    session.run(*COVERAGE_COMMAND)

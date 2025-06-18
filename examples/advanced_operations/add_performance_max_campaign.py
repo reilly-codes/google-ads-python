@@ -33,11 +33,10 @@ from datetime import datetime, timedelta
 import sys
 from uuid import uuid4
 
+from examples.utils.example_helpers import get_image_bytes_from_url
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
 from google.ads.googleads.util import convert_snake_case_to_upper_case
-
-import requests
 
 
 # We specify temporary IDs that are specific to a single mutate request.
@@ -57,13 +56,15 @@ next_temp_id = int(_ASSET_GROUP_TEMPORARY_ID) - 1
 
 
 # [START add_performance_max_campaign]
-def main(client, customer_id, audience_id):
+def main(client, customer_id, audience_id, brand_guidelines_enabled):
     """The main method that creates all necessary entities for the example.
 
     Args:
         client: an initialized GoogleAdsClient instance.
         customer_id: a client customer ID.
         audience_id: an optional audience ID.
+        brand_guidelines_enabled: a boolean value indicating if the campaign is
+          enabled for brand guidelines.
     """
     # [START add_performance_max_campaign_1]
     googleads_service = client.get_service("GoogleAdsService")
@@ -75,11 +76,22 @@ def main(client, customer_id, audience_id):
     #
     # Create the headlines.
     headline_asset_resource_names = create_multiple_text_assets(
-        client, customer_id, ["Travel", "Travel Reviews", "Book travel",],
+        client,
+        customer_id,
+        [
+            "Travel",
+            "Travel Reviews",
+            "Book travel",
+        ],
     )
     # Create the descriptions.
     description_asset_resource_names = create_multiple_text_assets(
-        client, customer_id, ["Take to the air!", "Fly to the sky!",],
+        client,
+        customer_id,
+        [
+            "Take to the air!",
+            "Fly to the sky!",
+        ],
     )
 
     # The below methods create and return MutateOperations that we later
@@ -90,19 +102,29 @@ def main(client, customer_id, audience_id):
     # successfully or fail entirely, leaving no orphaned entities. See:
     # https://developers.google.com/google-ads/api/docs/mutating/overview
     campaign_budget_operation = create_campaign_budget_operation(
-        client, customer_id,
+        client,
+        customer_id,
     )
-    performance_max_campaign_operation = create_performance_max_campaign_operation(
-        client, customer_id,
+    performance_max_campaign_operation = (
+        create_performance_max_campaign_operation(
+            client,
+            customer_id,
+            brand_guidelines_enabled,
+        )
     )
     campaign_criterion_operations = create_campaign_criterion_operations(
-        client, customer_id,
+        client,
+        customer_id,
     )
     asset_group_operations = create_asset_group_operation(
         client,
         customer_id,
         headline_asset_resource_names,
         description_asset_resource_names,
+        brand_guidelines_enabled,
+    )
+    asset_group_signal_operations = create_asset_group_signal_operations(
+        client, customer_id, audience_id
     )
 
     mutate_operations = [
@@ -114,15 +136,8 @@ def main(client, customer_id, audience_id):
         # other mutate operations
         *campaign_criterion_operations,
         *asset_group_operations,
+        *asset_group_signal_operations,
     ]
-
-    # Append an asset group signal operation is an audience ID is given.
-    if audience_id:
-        mutate_operations.append(
-            create_asset_group_signal_operation(
-                client, customer_id, audience_id
-            )
-        )
 
     # Send the operations in a single Mutate request.
     response = googleads_service.mutate(
@@ -135,7 +150,8 @@ def main(client, customer_id, audience_id):
 
 # [START add_performance_max_campaign_2]
 def create_campaign_budget_operation(
-    client, customer_id,
+    client,
+    customer_id,
 ):
     """Creates a MutateOperation that creates a new CampaignBudget.
 
@@ -173,7 +189,9 @@ def create_campaign_budget_operation(
 
 # [START add_performance_max_campaign_3]
 def create_performance_max_campaign_operation(
-    client, customer_id,
+    client,
+    customer_id,
+    brand_guidelines_enabled,
 ):
     """Creates a MutateOperation that creates a new Performance Max campaign.
 
@@ -183,6 +201,8 @@ def create_performance_max_campaign_operation(
     Args:
         client: an initialized GoogleAdsClient instance.
         customer_id: a client customer ID.
+        brand_guidelines_enabled: a boolean value indicating if the campaign is
+          enabled for brand guidelines.
 
     Returns:
         a MutateOperation that creates a campaign.
@@ -222,6 +242,10 @@ def create_performance_max_campaign_operation(
     # can optionally add exclusions to limit traffic to parts of your website.
     campaign.url_expansion_opt_out = False
 
+    # Set if the campaign is enabled for brand guidelines. For more information
+    # on brand guidelines, see https://support.google.com/google-ads/answer/14934472.
+    campaign.brand_guidelines_enabled = brand_guidelines_enabled
+
     # Assign the resource name with a temporary ID.
     campaign_service = client.get_service("CampaignService")
     campaign.resource_name = campaign_service.campaign_path(
@@ -242,7 +266,8 @@ def create_performance_max_campaign_operation(
 
 # [START add_performance_max_campaign_4]
 def create_campaign_criterion_operations(
-    client, customer_id,
+    client,
+    customer_id,
 ):
     """Creates a list of MutateOperations that create new campaign criteria.
 
@@ -273,8 +298,8 @@ def create_campaign_criterion_operations(
     campaign_criterion.campaign = campaign_service.campaign_path(
         customer_id, _PERFORMANCE_MAX_CAMPAIGN_TEMPORARY_ID
     )
-    campaign_criterion.location.geo_target_constant = geo_target_constant_service.geo_target_constant_path(
-        "1023191"
+    campaign_criterion.location.geo_target_constant = (
+        geo_target_constant_service.geo_target_constant_path("1023191")
     )
     campaign_criterion.negative = False
     operations.append(mutate_operation)
@@ -285,8 +310,8 @@ def create_campaign_criterion_operations(
     campaign_criterion.campaign = campaign_service.campaign_path(
         customer_id, _PERFORMANCE_MAX_CAMPAIGN_TEMPORARY_ID
     )
-    campaign_criterion.location.geo_target_constant = geo_target_constant_service.geo_target_constant_path(
-        "1022762"
+    campaign_criterion.location.geo_target_constant = (
+        geo_target_constant_service.geo_target_constant_path("1022762")
     )
     campaign_criterion.negative = True
     operations.append(mutate_operation)
@@ -300,8 +325,8 @@ def create_campaign_criterion_operations(
     # Set the language.
     # For a list of all language codes, see:
     # https://developers.google.com/google-ads/api/reference/data/codes-formats#expandable-7
-    campaign_criterion.language.language_constant = googleads_service.language_constant_path(
-        "1000"
+    campaign_criterion.language.language_constant = (
+        googleads_service.language_constant_path("1000")
     )  # English
     operations.append(mutate_operation)
 
@@ -335,7 +360,8 @@ def create_multiple_text_assets(client, customer_id, texts):
 
     # Send the operations in a single Mutate request.
     response = googleads_service.mutate(
-        customer_id=customer_id, mutate_operations=operations,
+        customer_id=customer_id,
+        mutate_operations=operations,
     )
     asset_resource_names = []
     for result in response.mutate_operation_responses:
@@ -352,6 +378,7 @@ def create_asset_group_operation(
     customer_id,
     headline_asset_resource_names,
     description_asset_resource_names,
+    brand_guidelines_enabled,
 ):
     """Creates a list of MutateOperations that create a new asset_group.
 
@@ -363,6 +390,8 @@ def create_asset_group_operation(
         customer_id: a client customer ID.
         headline_asset_resource_names: a list of headline resource names.
         description_asset_resource_names: a list of description resource names.
+        brand_guidelines_enabled: a boolean value indicating if the campaign is
+          enabled for brand guidelines.
 
     Returns:
         MutateOperations that create a new asset group and related assets.
@@ -383,7 +412,8 @@ def create_asset_group_operation(
     asset_group.final_mobile_urls.append("http://www.example.com")
     asset_group.status = client.enums.AssetGroupStatusEnum.PAUSED
     asset_group.resource_name = asset_group_service.asset_group_path(
-        customer_id, _ASSET_GROUP_TEMPORARY_ID,
+        customer_id,
+        _ASSET_GROUP_TEMPORARY_ID,
     )
     operations.append(mutate_operation)
 
@@ -407,7 +437,8 @@ def create_asset_group_operation(
         asset_group_asset = mutate_operation.asset_group_asset_operation.create
         asset_group_asset.field_type = client.enums.AssetFieldTypeEnum.HEADLINE
         asset_group_asset.asset_group = asset_group_service.asset_group_path(
-            customer_id, _ASSET_GROUP_TEMPORARY_ID,
+            customer_id,
+            _ASSET_GROUP_TEMPORARY_ID,
         )
         asset_group_asset.asset = resource_name
         operations.append(mutate_operation)
@@ -420,7 +451,8 @@ def create_asset_group_operation(
             client.enums.AssetFieldTypeEnum.DESCRIPTION
         )
         asset_group_asset.asset_group = asset_group_service.asset_group_path(
-            customer_id, _ASSET_GROUP_TEMPORARY_ID,
+            customer_id,
+            _ASSET_GROUP_TEMPORARY_ID,
         )
         asset_group_asset.asset = resource_name
         operations.append(mutate_operation)
@@ -434,26 +466,18 @@ def create_asset_group_operation(
     )
     operations.extend(mutate_operations)
 
-    # Create and link the business name text asset.
-    mutate_operations = create_and_link_text_asset(
+    # Create and link the business name and logo asset.
+    mutate_operations = create_and_link_brand_assets(
         client,
         customer_id,
+        brand_guidelines_enabled,
         "Interplanetary Cruises",
-        client.enums.AssetFieldTypeEnum.BUSINESS_NAME,
+        "https://gaagl.page.link/bjYi",
+        "Marketing Logo",
     )
     operations.extend(mutate_operations)
 
     # Create and link the image assets.
-
-    # Create and link the Logo Asset.
-    mutate_operations = create_and_link_image_asset(
-        client,
-        customer_id,
-        "https://gaagl.page.link/bjYi",
-        client.enums.AssetFieldTypeEnum.LOGO,
-        "Marketing Logo",
-    )
-    operations.extend(mutate_operations)
 
     # Create and link the Marketing Image Asset.
     mutate_operations = create_and_link_image_asset(
@@ -508,7 +532,8 @@ def create_and_link_text_asset(client, customer_id, text, field_type):
     asset_group_asset = mutate_operation.asset_group_asset_operation.create
     asset_group_asset.field_type = field_type
     asset_group_asset.asset_group = asset_group_service.asset_group_path(
-        customer_id, _ASSET_GROUP_TEMPORARY_ID,
+        customer_id,
+        _ASSET_GROUP_TEMPORARY_ID,
     )
     asset_group_asset.asset = asset_service.asset_path(
         customer_id, next_temp_id
@@ -550,7 +575,7 @@ def create_and_link_image_asset(
     # name, the new name will be dropped silently.
     asset.name = asset_name
     asset.type_ = client.enums.AssetTypeEnum.IMAGE
-    asset.image_asset.data = get_image_bytes(url)
+    asset.image_asset.data = get_image_bytes_from_url(url)
     operations.append(mutate_operation)
 
     # Create an AssetGroupAsset to link the Asset to the AssetGroup.
@@ -558,7 +583,8 @@ def create_and_link_image_asset(
     asset_group_asset = mutate_operation.asset_group_asset_operation.create
     asset_group_asset.field_type = field_type
     asset_group_asset.asset_group = asset_group_service.asset_group_path(
-        customer_id, _ASSET_GROUP_TEMPORARY_ID,
+        customer_id,
+        _ASSET_GROUP_TEMPORARY_ID,
     )
     asset_group_asset.asset = asset_service.asset_path(
         customer_id, next_temp_id
@@ -570,17 +596,132 @@ def create_and_link_image_asset(
     # [END add_performance_max_campaign_8]
 
 
-def get_image_bytes(url):
-    """Loads image data from a URL.
+def create_and_link_brand_assets(
+    client,
+    customer_id,
+    brand_guidelines_enabled,
+    business_name,
+    logo_url,
+    logo_name,
+):
+    """Creates a list of MutateOperations that create linked brand assets.
 
     Args:
-        url: a URL str.
+        client: an initialized GoogleAdsClient instance.
+        customer_id: a client customer ID.
+        brand_guidelines_enabled: a boolean value indicating if the campaign is
+          enabled for brand guidelines.
+        business_name: the business name text to be put into an asset.
+        logo_url: the url of the logo to be retrieved and put into an asset.
+        logo_name: the asset name of the logo.
 
     Returns:
-        Images bytes loaded from the given URL.
+        MutateOperations that create linked brand assets.
     """
-    response = requests.get(url)
-    return response.content
+    global next_temp_id
+    operations = []
+    asset_service = client.get_service("AssetService")
+
+    # Create the Text Asset.
+    text_asset_temp_id = next_temp_id
+    next_temp_id -= 1
+
+    text_mutate_operation = client.get_type("MutateOperation")
+    text_asset = text_mutate_operation.asset_operation.create
+    text_asset.resource_name = asset_service.asset_path(
+        customer_id, text_asset_temp_id
+    )
+    text_asset.text_asset.text = business_name
+    operations.append(text_mutate_operation)
+
+    # Create the Image Asset.
+    image_asset_temp_id = next_temp_id
+    next_temp_id -= 1
+
+    image_mutate_operation = client.get_type("MutateOperation")
+    image_asset = image_mutate_operation.asset_operation.create
+    image_asset.resource_name = asset_service.asset_path(
+        customer_id, image_asset_temp_id
+    )
+    # Provide a unique friendly name to identify your asset.
+    # When there is an existing image asset with the same content but a different
+    # name, the new name will be dropped silently.
+    image_asset.name = logo_name
+    image_asset.type_ = client.enums.AssetTypeEnum.IMAGE
+    image_asset.image_asset.data = get_image_bytes_from_url(logo_url)
+    operations.append(image_mutate_operation)
+
+    if brand_guidelines_enabled:
+        # Create CampaignAsset resources to link the Asset resources to the Campaign.
+        campaign_service = client.get_service("CampaignService")
+
+        business_name_mutate_operation = client.get_type("MutateOperation")
+        business_name_campaign_asset = (
+            business_name_mutate_operation.campaign_asset_operation.create
+        )
+        business_name_campaign_asset.field_type = (
+            client.enums.AssetFieldTypeEnum.BUSINESS_NAME
+        )
+        business_name_campaign_asset.campaign = campaign_service.campaign_path(
+            customer_id, _PERFORMANCE_MAX_CAMPAIGN_TEMPORARY_ID
+        )
+        business_name_campaign_asset.asset = asset_service.asset_path(
+            customer_id, text_asset_temp_id
+        )
+        operations.append(business_name_mutate_operation)
+
+        logo_mutate_operation = client.get_type("MutateOperation")
+        logo_campaign_asset = (
+            logo_mutate_operation.campaign_asset_operation.create
+        )
+        logo_campaign_asset.field_type = client.enums.AssetFieldTypeEnum.LOGO
+        logo_campaign_asset.campaign = campaign_service.campaign_path(
+            customer_id, _PERFORMANCE_MAX_CAMPAIGN_TEMPORARY_ID
+        )
+        logo_campaign_asset.asset = asset_service.asset_path(
+            customer_id, image_asset_temp_id
+        )
+        operations.append(logo_mutate_operation)
+
+    else:
+        # Create AssetGroupAsset resources to link the Asset resources to the AssetGroup.
+        asset_group_service = client.get_service("AssetGroupService")
+
+        business_name_mutate_operation = client.get_type("MutateOperation")
+        business_name_asset_group_asset = (
+            business_name_mutate_operation.asset_group_asset_operation.create
+        )
+        business_name_asset_group_asset.field_type = (
+            client.enums.AssetFieldTypeEnum.BUSINESS_NAME
+        )
+        business_name_asset_group_asset.asset_group = (
+            asset_group_service.asset_group_path(
+                customer_id,
+                _ASSET_GROUP_TEMPORARY_ID,
+            )
+        )
+        business_name_asset_group_asset.asset = asset_service.asset_path(
+            customer_id, text_asset_temp_id
+        )
+        operations.append(business_name_mutate_operation)
+
+        logo_mutate_operation = client.get_type("MutateOperation")
+        logo_asset_group_asset = (
+            logo_mutate_operation.asset_group_asset_operation.create
+        )
+        logo_asset_group_asset.field_type = client.enums.AssetFieldTypeEnum.LOGO
+        logo_asset_group_asset.asset_group = (
+            asset_group_service.asset_group_path(
+                customer_id,
+                _ASSET_GROUP_TEMPORARY_ID,
+            )
+        )
+        logo_asset_group_asset.asset = asset_service.asset_path(
+            customer_id, image_asset_temp_id
+        )
+        operations.append(logo_mutate_operation)
+
+    return operations
 
 
 def print_response_details(response):
@@ -607,8 +748,7 @@ def print_response_details(response):
             )
 
 
-# [START add_performance_max_campaign_9]
-def create_asset_group_signal_operation(client, customer_id, audience_id):
+def create_asset_group_signal_operations(client, customer_id, audience_id):
     """Creates a list of MutateOperations that may create asset group signals.
 
     Args:
@@ -619,34 +759,44 @@ def create_asset_group_signal_operation(client, customer_id, audience_id):
     Returns:
         MutateOperations that create new asset group signals.
     """
-    if not audience_id:
-        return None
-
     googleads_service = client.get_service("GoogleAdsService")
     asset_group_resource_name = googleads_service.asset_group_path(
         customer_id, _ASSET_GROUP_TEMPORARY_ID
     )
 
+    operations = []
+
+    if audience_id:
+        # Create an audience asset group signal.
+        # To learn more about Audience Signals, see:
+        # https://developers.google.com/google-ads/api/performance-max/asset-group-signals#audiences
+        # [START add_performance_max_campaign_9]
+        mutate_operation = client.get_type("MutateOperation")
+        operation = mutate_operation.asset_group_signal_operation.create
+        operation.asset_group = asset_group_resource_name
+        operation.audience.audience = googleads_service.audience_path(
+            customer_id, audience_id
+        )
+        operations.append(mutate_operation)
+        # [END add_performance_max_campaign_9]
+
+    # Create a search theme asset group signal.
+    # To learn more about Search Themes Signals, see:
+    # https://developers.google.com/google-ads/api/performance-max/asset-group-signals#search_themes
+    # [START add_performance_max_campaign_10]
     mutate_operation = client.get_type("MutateOperation")
     operation = mutate_operation.asset_group_signal_operation.create
-    # To learn more about Audience Signals, see:
-    # https://developers.google.com/google-ads/api/docs/performance-max/asset-groups#audience_signals
     operation.asset_group = asset_group_resource_name
-    operation.audience.audience = googleads_service.audience_path(
-        customer_id, audience_id
-    )
+    operation.search_theme.text = "travel"
+    operations.append(mutate_operation)
+    # [END add_performance_max_campaign_10]
 
-    return mutate_operation
-    # [END add_performance_max_campaign_9]
+    return operations
 
 
 # [END add_performance_max_campaign]
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description=("Creates a Performance Max campaign.")
     )
@@ -659,13 +809,35 @@ if __name__ == "__main__":
         help="The Google Ads customer ID.",
     )
     parser.add_argument(
-        "-a", "--audience_id", type=str, help="The ID of an audience.",
+        "-a",
+        "--audience_id",
+        type=str,
+        help="The ID of an audience.",
+    )
+    parser.add_argument(
+        "-b",
+        "--brand_guidelines_enabled",
+        type=bool,
+        default=False,
+        help=(
+            "A boolean value indicating if the created campaign is enabled "
+            "for brand guidelines."
+        ),
     )
 
     args = parser.parse_args()
 
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v20")
+
     try:
-        main(googleads_client, args.customer_id, args.audience_id)
+        main(
+            googleads_client,
+            args.customer_id,
+            args.audience_id,
+            args.brand_guidelines_enabled,
+        )
     except GoogleAdsException as ex:
         print(
             f'Request with ID "{ex.request_id}" failed with status '

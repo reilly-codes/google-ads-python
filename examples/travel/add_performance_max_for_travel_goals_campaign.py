@@ -38,13 +38,15 @@ Notes:
 
 import argparse
 import sys
-from timeit import default_timer
 
-from examples.utils.example_helpers import get_printable_datetime
+
+from examples.utils.example_helpers import (
+    get_printable_datetime,
+    get_image_bytes_from_url,
+)
 from google.ads.googleads.client import GoogleAdsClient
 from google.ads.googleads.errors import GoogleAdsException
 
-import requests
 
 MIN_REQUIRED_TEXT_ASSET_COUNTS = {
     "HEADLINE": 3,
@@ -616,7 +618,9 @@ def create_asset_group_operations(
         # and link it to the asset group.
         asset_mutate_operation = client.get_type("MutateOperation")
         asset = asset_mutate_operation.asset_operation.create
-        asset.resource_name = googleads_service.asset_path(customer_id, next_temp_id)
+        asset.resource_name = googleads_service.asset_path(
+            customer_id, next_temp_id
+        )
         asset.name = (
             f"Suggested call-to-action asset #{get_printable_datetime()}"
         )
@@ -629,7 +633,9 @@ def create_asset_group_operations(
         asset_group_asset = (
             asset_group_asset_mutate_operation.asset_group_asset_operation.create
         )
-        asset_group_asset.asset = googleads_service.asset_path(customer_id, next_temp_id)
+        asset_group_asset.asset = googleads_service.asset_path(
+            customer_id, next_temp_id
+        )
         asset_group_asset.asset_group = asset_group_resource_name
         asset_group_asset.field_type = (
             client.enums.AssetFieldTypeEnum.CALL_TO_ACTION_SELECTION
@@ -808,7 +814,6 @@ def create_image_assets_for_asset_group(
         if field_type_enum.name in required_image_asset_counts:
             required_image_asset_counts[field_type_enum.name] += 1
 
-
     # Adds more image assets to fulfill the requirements.
     for field_type_name, min_count in MIN_REQUIRED_IMAGE_ASSET_COUNTS.items():
         difference = min_count - required_image_asset_counts[field_type_name]
@@ -864,7 +869,7 @@ def create_image_asset_and_image_asset_group_asset_operations(
     # existing image asset with the same content but a different name, the new
     # name will be dropped silently.
     asset.name = asset_name
-    asset.image_asset.data = requests.get(url).content
+    asset.image_asset.data = get_image_bytes_from_url(url)
     operations.append(asset_mutate_operation)
 
     # Creates an asset group asset operation to link the asset to the asset
@@ -926,10 +931,6 @@ def print_response_details(mutate_response):
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description=("Creates a Performance Max for travel goals campaign.")
     )
@@ -955,6 +956,10 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v20")
 
     try:
         main(googleads_client, args.customer_id, args.place_id)

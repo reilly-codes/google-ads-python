@@ -135,21 +135,21 @@ def get_feed(client, customer_id, feed_id):
                 flight_placeholder_field_enum.FLIGHT_DESCRIPTION
             ] = feed_attribute
         elif feed_attribute.name == "Destination ID":
-            feed_attributes[
-                flight_placeholder_field_enum.DESTINATION_ID
-            ] = feed_attribute
+            feed_attributes[flight_placeholder_field_enum.DESTINATION_ID] = (
+                feed_attribute
+            )
         elif feed_attribute.name == "Flight Price":
-            feed_attributes[
-                flight_placeholder_field_enum.FLIGHT_PRICE
-            ] = feed_attribute
+            feed_attributes[flight_placeholder_field_enum.FLIGHT_PRICE] = (
+                feed_attribute
+            )
         elif feed_attribute.name == "Flight Sale Price":
-            feed_attributes[
-                flight_placeholder_field_enum.FLIGHT_SALE_PRICE
-            ] = feed_attribute
+            feed_attributes[flight_placeholder_field_enum.FLIGHT_SALE_PRICE] = (
+                feed_attribute
+            )
         elif feed_attribute.name == "Final URLs":
-            feed_attributes[
-                flight_placeholder_field_enum.FINAL_URLS
-            ] = feed_attribute
+            feed_attributes[flight_placeholder_field_enum.FINAL_URLS] = (
+                feed_attribute
+            )
         else:
             raise ValueError("Invalid attribute name.")
 
@@ -253,10 +253,6 @@ def get_feed_item(client, customer_id, feed_id, feed_item_id):
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description="Removes a feed item attribute value of a feed item in a "
         "flights feed."
@@ -291,6 +287,10 @@ if __name__ == "__main__":
         help="The flight placeholder field name for the attribute to be removed.",
     )
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v20")
 
     try:
         main(

@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""This shows how to handle responses that may include partial_failure errors.
-"""
+"""This shows how to handle responses that may include partial_failure errors."""
 
 
 import argparse
@@ -205,10 +204,6 @@ def print_results(client, response):
 
 
 if __name__ == "__main__":
-    # GoogleAdsClient will read the google-ads.yaml configuration file in the
-    # home directory if none is specified.
-    googleads_client = GoogleAdsClient.load_from_storage(version="v14")
-
     parser = argparse.ArgumentParser(
         description="Adds an ad group for specified customer and campaign id."
     )
@@ -224,5 +219,9 @@ if __name__ == "__main__":
         "-i", "--campaign_id", type=str, required=True, help="The campaign ID."
     )
     args = parser.parse_args()
+
+    # GoogleAdsClient will read the google-ads.yaml configuration file in the
+    # home directory if none is specified.
+    googleads_client = GoogleAdsClient.load_from_storage(version="v20")
 
     main(googleads_client, args.customer_id, args.campaign_id)
